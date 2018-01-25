@@ -14,6 +14,7 @@ class PerfIndicator(object):
         self.health_value = None
         self.health = None
         self.importance = None
+        self.is_boolean = False
 
     def calculate_health_value(self):
         if self.value < self.green_threshold:

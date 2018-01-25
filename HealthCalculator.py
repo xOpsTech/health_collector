@@ -58,7 +58,7 @@ class HealthCalculator(object):
 
                 if perf_indicators:
                     try:
-                        health, health_list = self.gather_health(item, perf_indicators)
+                        health, health_list, _ = self.gather_health(item, perf_indicators)
                         health_result = self.compose_msg(item_id, health, importance, health_list)
                         print(health_result)
                         self.write_to_es(health_result)
@@ -80,6 +80,7 @@ class HealthCalculator(object):
             metric_value = self.get_metric_value(current_item_id)
             perf_indicator = PerfIndicator()
             perf_indicator.id = current_item_id
+            perf_indicator.is_boolean = current_item.get('isBoolean', False)
             perf_indicator.red_threshold = current_item['thresholdRed']
             perf_indicator.orange_threshold = current_item['thresholdOrange']
             perf_indicator.yellow_threshold = current_item['thresholdYellow']
@@ -89,25 +90,38 @@ class HealthCalculator(object):
             perf_indicator.importance = current_item['importance']
 
             perf_indicator.calculate_health_value()
-            return perf_indicator.health_value, None
+            return perf_indicator.health_value, None, perf_indicator.is_boolean
         else:
 
             total_health_value = 0
             total_importance = 0
             health_list = []
+            is_bool_list = []
             for item in item_list:
                 item_id = item['id']
                 importance = item['importance']
                 items = self.get_items_by_id(item_id)
 
-                health_value, prev_health_list = self.gather_health(item, items)
+                health_value, prev_health_list, is_boolean = self.gather_health(item, items)
+
+                if is_boolean:
+                    print('isBoolean true for %s | health_value: %s' % (item_id, health_value))
+                    is_bool_list.append(health_value)
+
                 health_list.append(self.compose_msg(item_id, health_value, importance, prev_health_list))
+
+                if len(is_bool_list) > 0:
+                    continue
 
                 total_health_value += health_value * importance
                 total_importance += importance
 
-            health = total_health_value / total_importance
-            return health, health_list
+            if len(is_bool_list) > 0:
+                health = max(is_bool_list)
+                print('max health for %s | health_value: %s' % (item_id, health))
+            else:
+                health = total_health_value / total_importance
+            return health, health_list, None
 
     def compose_msg(self, item_id, health_value, importance, health_list):
 
