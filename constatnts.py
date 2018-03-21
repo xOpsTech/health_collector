@@ -1,4 +1,4 @@
-ES_IP = "35.227.87.177"
+ES_IP = "elastic.xops.it"
 ES_HEALTH_INDEX = "health"
 ES_DOC_TYPE = "health"
 DATE_FORMAT = "%Y-%m-%d"
